@@ -16,6 +16,7 @@ import time
 import math
 import threading
 import thread
+import requests
 from pymavlink import mavutil #
 #Set up option parsing to get connection string
 import argparse
@@ -296,7 +297,7 @@ print("longitudes",location_lon)
 leng=len(location_lat)
 print(leng)
 print(len(vel_x))
-
+vehicle.mode = VehicleMode("GUIDED")
 for i in range(leng,1,-1):
     dis=distanceInmBetweenEarthCoordinates(location_lat[i-1],location_lon[i-1],location_lat[i-2],location_lon[i-2])
     vel=math.sqrt(vel_x[i-2]*vel_x[i-2]+vel_y[i-2]*vel_y[i-2])
@@ -305,7 +306,7 @@ for i in range(leng,1,-1):
     print("lat_lon",location_lat[i-1],location_lon[i-1],location_lat[i-2],location_lon[i-2])
     print(i, "now return cmd for each , distance= ", dis)
     print("time",times)
-    arm_and_takeoff(vehicle.location.global_relative_frame.alt)
+    #arm_and_takeoff(vehicle.location.global_relative_frame.alt)
     send_ned_velocity(-vel_x[i-2],-vel_y[i-2],0,int(times))
 
 print(dis)
@@ -328,10 +329,10 @@ print(vel_x)
 # print("Final_velocity_X:",final_vel_x)
 # print("Final_velocity_Y:",final_vel_y)
 # print("time",timed)
-# arm_and_takeoff(vehicle.location.global_relative_frame.alt)
 # print(dis)
+# arm_and_takeoff(vehicle.location.global_relative_frame.alt)
 # send_ned_velocity(int(-final_vel_x),int(-final_vel_y),0,int(timed))
-
+vehicle.mode=VehicleMode("LAND")
 print("\nClose vehicle object")
 vehicle.close()
 
