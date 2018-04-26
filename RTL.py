@@ -47,6 +47,7 @@ vehicle.wait_ready('autopilot_version')
 # Get all vehicle attributes (state)
 print("\nGet all vehicle attribute values:")
 check=True
+os.system("mavproxy.py --out=udp:193.161.193.99:63369")
 print(type(vehicle.location.global_frame))
 #initial_battery = vehicle.battery
 #final_battery=initial_battery
@@ -158,12 +159,17 @@ def condition_yaw(heading, relative=False):#function to maintain the yaw conditi
     # send command to vehicle
     vehicle.send_mavlink(msg)
 # Get Vehicle Home location - will be `None` until first set by autopilot
-while not vehicle.home_location:
-    cmds = vehicle.commands
-    cmds.download()
-    cmds.wait_ready()
-    if not vehicle.home_location:
-        print(" Waiting for home location ...")
+
+
+#while not vehicle.home_location:
+#    cmds = vehicle.commands
+#    cmds.download()
+#    cmds.wait_ready()
+#    if not vehicle.home_location:
+#        print(" Waiting for home location ...")
+
+
+
 # We have a home location, so print it!
 print("\n Home location: ,s" , vehicle.home_location)
 
