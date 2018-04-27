@@ -32,7 +32,7 @@ print("\nConnecting to vehicle on: ,s" , connection_string)
 vehicle = connect(connection_string, wait_ready=True)
 
 vehicle.wait_ready('autopilot_version')
-
+data = {}
 # Get all vehicle attributes (state)
 print("\nGet all vehicle attribute values:")
 
@@ -41,7 +41,6 @@ def send_data(threadName, delay):
         loc = vehicle.location.global_frame
         vel = vehicle.velocity
         status = str(vehicle.system_status)
-        data = {}
         data["firm"] = str(vehicle.version)
         data["conn"] = True
         data["arm"] = vehicle.armed
@@ -66,7 +65,7 @@ def send_data(threadName, delay):
         data["numSat"] = vehicle.gps_0.satellites_visible
         data["hdop"] = vehicle.gps_0.eph
         data["fix"] = vehicle.gps_0.fix_type
-        print(data)
+        #print(data)
         r = requests.get("https://nicwebpage.herokuapp.com/data",params=data)
         #r = requests.get("http://photooverlay.com/nic/get_data.php",params=data)
         #print(r.text)
@@ -75,8 +74,58 @@ def send_data(threadName, delay):
 def start():
     try:
         thread.start_new_thread(send_data,("Send Data", 1))
+        save_mission()
     except Exception as e:
         print(e)
+
+
+
+def download_mission():
+    """
+    Downloads the current mission and returns it in a list.
+    It is used in save_mission() to get the file information to save.
+    """
+    missionlist=[]
+    cmds = vehicle.commands
+    cmds.download()
+    cmds.wait_ready()
+    for cmd in cmds:
+        missionlist.append(cmd)
+    return missionlist
+
+
+
+def save_mission():
+    """
+    Save a mission in the Waypoint file format
+    (http://qgroundcontrol.org/mavlink/waypoint_protocol#waypoint_file_format).
+    """
+    #Download mission from vehicle
+    missionlist = download_mission()
+    #Add file-format information
+
+    #Add home location as 0th waypoint
+    a=1
+    #Add commands
+    for cmd in missionlist:
+        data["waypoint_lat"+str(a)]=cmd.x
+        data["waypoint_lon"+str(a)]=cmd.y
+        data["waypoint_alt"+str(a)]=cmd.z
+        data["waypoint_command"+str(a)]=cmd.command
+        p = requests.get("https://nicwebpage.herokuapp.com/data",params=data)
+        a=a+1
+
+
+
+
+
+
+
+
+
+
+
+
 
 start()
 while 1:
