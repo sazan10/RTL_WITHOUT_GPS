@@ -66,15 +66,19 @@ def send_data(threadName, delay):
         data["hdop"] = vehicle.gps_0.eph
         data["fix"] = vehicle.gps_0.fix_type
         #print(data)
-        r = requests.get("https://nicwebpage.herokuapp.com/data",params=data)
+        r = requests.get("http://127.0.0.1:3000/data",params=data)
+        #r = requests.get("https://nicwebpage.herokuapp.com/data",params=data)
         #r = requests.get("http://photooverlay.com/nic/get_data.php",params=data)
-        #print(r.text)
-        time.sleep(delay)
+        print(r.text)
+        #time.sleep(delay)
+        if r.text == '1':
+            save_mission()
+
 
 def start():
     try:
         thread.start_new_thread(send_data,("Send Data", 1))
-        save_mission()
+        #save_mission()
     except Exception as e:
         print(e)
 
@@ -106,25 +110,19 @@ def save_mission():
 
     #Add home location as 0th waypoint
     a=1
+    waypoint = {}
     #Add commands
     for cmd in missionlist:
-        data["waypoint_lat"+str(a)]=cmd.x
-        data["waypoint_lon"+str(a)]=cmd.y
-        data["waypoint_alt"+str(a)]=cmd.z
-        data["waypoint_command"+str(a)]=cmd.command
-        p = requests.get("https://nicwebpage.herokuapp.com/data",params=data)
+        waypoint[a]= {
+            'lat': cmd.x,
+            'lon': cmd.y,
+            'alt': cmd.z,
+            'command': cmd.command
+        }
         a=a+1
-
-
-
-
-
-
-
-
-
-
-
+    #print(waypoint)
+    p = requests.get("http://127.0.0.1:3000/waypoints", json=waypoint)
+    #p = requests.get("https://nicwebpage.herokuapp.com/waypoints",json=waypoint)
 
 
 start()
