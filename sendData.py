@@ -44,6 +44,7 @@ def send_data(threadName, delay):
         data["firm"] = str(vehicle.version)
         data["conn"] = True
         data["arm"] = vehicle.armed
+        data["airs"] = format(vehicle.airspeed, '.3f')
         data["ekf"] = vehicle.ekf_ok
         data["mode"] = vehicle.mode.name
         data["lat"] = format(loc.lat,'.15f')
@@ -53,14 +54,8 @@ def send_data(threadName, delay):
         data["head"] = format(vehicle.heading, 'd')
         data["lidar"] = vehicle.rangefinder.distance
         data["gs"] = format(vehicle.groundspeed, '.3f')
-        data["roll"] = format(vehicle.attitude.roll, '.2f')
-        data["pitch"] = format(vehicle.attitude.pitch, '.2f')
-        data["yaw"] = format(vehicle.attitude.yaw, '.2f')
         data["status"] = status[13:]
         data["volt"] = format(vehicle.battery.voltage, '.2f')
-        data["vx"] = vel[0]
-        data["vy"] = vel[1]
-        data["vz"] = vel[2]
         data["heartbeat"] = vehicle.last_heartbeat
         data["numSat"] = vehicle.gps_0.satellites_visible
         data["hdop"] = vehicle.gps_0.eph
@@ -69,7 +64,7 @@ def send_data(threadName, delay):
         r = requests.get("http://127.0.0.1:3000/data",params=data)
         #r = requests.get("https://nicwebpage.herokuapp.com/data",params=data)
         #r = requests.get("http://photooverlay.com/nic/get_data.php",params=data)
-        print(r.text)
+        #print(r.text)
         #time.sleep(delay)
         if r.text == '1':
             save_mission()
@@ -111,6 +106,13 @@ def save_mission():
     #Add home location as 0th waypoint
     a=1
     waypoint = {}
+
+    home = vehicle.home_location
+    waypoint[0] = {
+        'lat':home.lat,
+        'lon':home.lon,
+        'alt':home.alt
+    }
     #Add commands
     for cmd in missionlist:
         waypoint[a]= {
