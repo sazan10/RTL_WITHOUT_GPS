@@ -164,8 +164,7 @@ def send_data(threadName, delay):
                     vel=float(vehicle.groundspeed)
                     #print("flight time",flight_time)
                     #print("total distance",total)
-                    est=float((float(total)-flight_time*3)/3+13+len(waypoint))
-
+                    est=float((float(total)-flight_time*vel)/vel+10+len(waypoint))
                     if est<=0:
                         est=0
                     data["est"]=est
@@ -183,7 +182,7 @@ def send_data(threadName, delay):
             save_mission()
             checker=True
             total=calculate_dist()
-        
+
 
 
 
