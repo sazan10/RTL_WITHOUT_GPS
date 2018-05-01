@@ -183,7 +183,7 @@ def send_data(threadName, delay):
             save_mission()
             checker=True
             total=calculate_dist()
-        est=0
+        
 
 
 
