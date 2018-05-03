@@ -96,7 +96,7 @@ def save_mission():
             }
             inc=inc+1
     #print(waypoint)
-    #p = requests.get("http://127.0.0.1:3000/waypoints", json=waypoint)
+    p = requests.get("http://127.0.0.1:3000/waypoints", json=waypoint)
     #p = requests.get("https://nicwebpage.herokuapp.com/waypoints",json=json.dumps(waypoint))
 
 
@@ -180,7 +180,7 @@ def send_data(threadName, delay):
                     data["est"]=est
                     #print(est)
                     #print("vel:",vel)
-                    print("estimated time:", est, total, flight_time*vel)
+                    #print("estimated time:", est, total, flight_time*vel)
                     last_vel+=vehicle.groundspeed
                     divisor+=1
                 except Exception as e:
@@ -188,16 +188,16 @@ def send_data(threadName, delay):
                     #print(e.args)
                     pass
 
-        #r = requests.get("http://127.0.0.1:3000/data",params=data)
+        r = requests.get("http://127.0.0.1:3000/data",params=data)
         #r = requests.get("https://nicwebpage.herokuapp.com/data",params=data)
         #r = requests.get("http://photooverlay.com/nic/get_data.php",params=data)
 
-        #if r.text == '1':
-        if not checker:
+        if r.text == '1':
+        #if not checker:
             save_mission()
             checker=True
             total=calculate_dist()
-            print("total:",total)
+            #print("total:",total)
 
 
 
