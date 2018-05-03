@@ -96,7 +96,7 @@ def save_mission():
             }
             inc=inc+1
     #print(waypoint)
-    p = requests.get("http://127.0.0.1:3000/waypoints", json=waypoint)
+    #p = requests.get("http://127.0.0.1:3000/waypoints", json=waypoint)
     #p = requests.get("https://nicwebpage.herokuapp.com/waypoints",json=json.dumps(waypoint))
 
 
@@ -124,6 +124,7 @@ def send_data(threadName, delay):
     global total
     global divisor
     global last_vel
+    print("started")
     while 1:
         loc = vehicle.location.global_frame
         vel = vehicle.velocity
@@ -141,14 +142,14 @@ def send_data(threadName, delay):
         data["as"]=format(vehicle.airspeed, '.3f')
         data["lidar"] = vehicle.rangefinder.distance
         data["gs"] = format(vehicle.groundspeed, '.3f')
-        data["roll"] = format(vehicle.attitude.roll, '.2f')
-        data["pitch"] = format(vehicle.attitude.pitch, '.2f')
-        data["yaw"] = format(vehicle.attitude.yaw, '.2f')
+        #data["roll"] = format(vehicle.attitude.roll, '.2f')
+        #data["pitch"] = format(vehicle.attitude.pitch, '.2f')
+        #data["yaw"] = format(vehicle.attitude.yaw, '.2f')
         data["status"] = status[13:]
         data["volt"] = format(vehicle.battery.voltage, '.2f')
-        data["vx"] = vel[0]
-        data["vy"] = vel[1]
-        data["vz"] = vel[2]
+        #data["vx"] = vel[0]
+        #data["vy"] = vel[1]
+        #data["vz"] = vel[2]
         data["heartbeat"] = vehicle.last_heartbeat
         data["numSat"] = vehicle.gps_0.satellites_visible
         data["hdop"] = vehicle.gps_0.eph
@@ -188,8 +189,8 @@ def send_data(threadName, delay):
                     #print(e.args)
                     pass
 
-        r = requests.get("http://127.0.0.1:3000/data",params=data)
-        #r = requests.get("https://nicwebpage.herokuapp.com/data",params=data)
+        #r = requests.get("http://127.0.0.1:3000/data",params=data)
+        r = requests.get("https://nicwebpage.herokuapp.com/data",params=data)
         #r = requests.get("http://photooverlay.com/nic/get_data.php",params=data)
 
         if r.text == '1':
@@ -197,7 +198,7 @@ def send_data(threadName, delay):
             save_mission()
             checker=True
             total=calculate_dist()
-            #print("total:",total)
+            print("total:",total)
 
 
 
@@ -208,17 +209,26 @@ def start():
     try:
         thread.start_new_thread(send_data,("Send Data", 1))
         save_mission()
-        calculate_dist()
+        #calculate_dist()
     except Exception as e:
         pass
 
 
 
 
-start()
+
 #print("total distance:", total)
+initiator={}
+initiator["flight"]=0
+initiator_flag=False
 while 1:
-    pass
+    if not initiator_flag:
+        initiate_flight=requests.get("https://nicwebpage.herokuapp.com/flight",params=initiator)
+        print (initiate_flight.text)
+        if initiate_flight.text=='1':
+            start()
+            initiator_flag=True
+
     #save_mission()
 
         #print("estimated time: ",(total-dist_travel)/vehicle.groundspeed)
