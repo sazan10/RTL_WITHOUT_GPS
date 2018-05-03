@@ -36,6 +36,40 @@ data = {}
 # Get all vehicle attributes (state)
 print("\nGet all vehicle attribute values:")
 
+
+def arm_and_takeoff(aTargetAltitude):
+    """
+    Arms vehicle and fly to aTargetAltitude.
+    """
+
+    print("Basic pre-arm checks")
+    # Don't let the user try to arm until autopilot is ready
+    while not vehicle.is_armable:
+        print(" Waiting for vehicle to initialise...")
+        time.sleep(1)
+
+
+    print("Arming motors")
+    # Copter should arm in GUIDED mode
+    vehicle.mode = VehicleMode("GUIDED")
+    vehicle.armed = True
+
+    while not vehicle.armed:
+        print(" Waiting for arming...")
+        time.sleep(1)
+
+    print("Taking off!")
+    vehicle.simple_takeoff(aTargetAltitude) # Take off to target altitude
+
+    # Wait until the vehicle reaches a safe height before processing the goto (otherwise the command
+    #  after Vehicle.simple_takeoff will execute immediately).
+    while True:
+        print(" Altitude: ", vehicle.location.global_relative_frame.alt)
+        if vehicle.location.global_relative_frame.alt>=aTargetAltitude*0.95: #Trigger just below target alt.
+            print("Reached target altitude")
+            break
+        time.sleep(1)
+
 def degreesToRadians(degrees): #function to convert degrees to radians, required for conversion of gps coordinates into distance
     return degrees * math.pi / 180;
 
@@ -97,7 +131,7 @@ def save_mission():
             inc=inc+1
     #print(waypoint)
     #p = requests.get("http://127.0.0.1:3000/waypoints", json=waypoint)
-    #p = requests.get("https://nicwebpage.herokuapp.com/waypoints",json=json.dumps(waypoint))
+    p = requests.get("https://nicwebpage.herokuapp.com/waypoints",json=waypoint)
 
 
 dist=[]
@@ -227,6 +261,8 @@ while 1:
         print (initiate_flight.text)
         if initiate_flight.text=='1':
             start()
+            vehicle.mode = VehicleMode("GUIDED")
+            arm_and_takeoff()
             initiator_flag=True
 
     #save_mission()
