@@ -4,13 +4,9 @@ import datetime
 import math
 import threading
 import json
-import thread
-import time
+import _thread
 import requests
-from pymavlink import mavutil
-from socketIO_client_nexus import SocketIO
-from requests.exceptions import ConnectionError#
-import numpy as np
+from pymavlink import mavutil #
 #Set up option parsing to get connection string
 import argparse
 parser = argparse.ArgumentParser(description='Print out vehicle state information. Connects to SITL on local PC by default.')
@@ -36,35 +32,7 @@ print("\nConnecting to vehicle on: ,s" , connection_string)
 vehicle = connect(connection_string, wait_ready=True)
 
 vehicle.wait_ready('autopilot_version')
-
-checker=False
-total=0
-def on_mission_download(var):
-    global total
-    global checker
-    print("DOWNLOAD MISSION COMMAND BY USER",var)
-    save_mission()
-    total=calculate_dist()
-    checker=True
-
-
-try:
-    socket = SocketIO('http://192.168.1.119', 3000, wait_for_connection=False)
-    #socket = SocketIO('https://nicwebpage.herokuapp.com', verify =False)
-    socket.emit("joinPi")
-except ConnectionError:
-    print('The server is down. Try again later.')
-
-
-def on_initiate_flight(var):
-    socket.emit("success","flight_success")
-    print("FLIGHT INITIATED BY USER")
-    arm_and_takeoff(5)
-    vehicle.mode = VehicleMode("AUTO")
-
-
-
-
+data = {}
 # Get all vehicle attributes (state)
 print("\nGet all vehicle attribute values:")
 
@@ -161,15 +129,10 @@ def save_mission():
             'command': cmd.command
             }
             inc=inc+1
-
     #print(waypoint)
     #p = requests.get("http://127.0.0.1:3000/waypoints", json=waypoint)
-    #p = requests.get("https://nicwebpage.herokuapp.com/waypoints",json=waypoint)
-    try:
-        socket.emit('waypoints',waypoint)
-        print("MISSION SAVED BY USER")
-    except Exception as e:
-        print(args(e))
+    p = requests.get("https://nicwebpage.herokuapp.com/waypoints",json=waypoint)
+
 
 dist=[]
 def calculate_dist():
@@ -184,25 +147,24 @@ def calculate_dist():
             pass
     return total_dist
 
-
+checker=False
 check = True
+total=0
 divisor=1
 last_vel=0
-data = {}
 def send_data(threadName, delay):
     global checker
     global check
     global total
     global divisor
     global last_vel
-
+    print("started")
     while 1:
-        #print("data sending ")
         loc = vehicle.location.global_frame
         vel = vehicle.velocity
         status = str(vehicle.system_status)
-        #data["firm"] = str(vehicle.version)
-        data["conn"] = 'True'
+        data["firm"] = str(vehicle.version)
+        data["conn"] = True
         data["arm"] = vehicle.armed
         data["ekf"] = vehicle.ekf_ok
         data["mode"] = vehicle.mode.name
@@ -222,7 +184,7 @@ def send_data(threadName, delay):
         #data["vx"] = vel[0]
         #data["vy"] = vel[1]
         #data["vz"] = vel[2]
-        #data["heartbeat"] = vehicle.last_heartbeat
+        data["heartbeat"] = vehicle.last_heartbeat
         data["numSat"] = vehicle.gps_0.satellites_visible
         data["hdop"] = vehicle.gps_0.eph
         data["fix"] = vehicle.gps_0.fix_type
@@ -232,9 +194,8 @@ def send_data(threadName, delay):
         #print(r.text)
         #time.sleep(delay)
         #print(len(waypoint))
-        print("total dist",total)
+
         if(checker):
-            print("inside checker")
             if vehicle.armed and check:
                 time1 = datetime.datetime.now()
                 check=False
@@ -245,8 +206,7 @@ def send_data(threadName, delay):
                     vel=float((last_vel+vehicle.groundspeed)/divisor)
 
                     #print("flight time",flight_time)
-                    print("total distance",total)
-                    #print(total)
+                    #print("total distance",total)
                     est=float((float(total)-flight_time*vel)/3.5)
                     #if est<=1 and (total-flight_time*vel)<=2:
                         #total=0
@@ -260,28 +220,29 @@ def send_data(threadName, delay):
                     divisor+=1
                 except Exception as e:
                     #print(type(e))
-                    print(e.args)
-                    #pass
+                    #print(e.args)
+                    pass
 
         #r = requests.get("http://127.0.0.1:3000/data",params=data)
-        #r = requests.get("https://nicwebpage.herokuapp.com/data",params=data)
-        #print(data)
-        socket.emit('data',data)
+        r = requests.get("https://nicwebpage.herokuapp.com/data",params=data)
         #r = requests.get("http://photooverlay.com/nic/get_data.php",params=data)
-        socket.on('mission_download',on_mission_download)
-        socket.on('initiate_flight',on_initiate_flight)
-        socket.wait(seconds=0.1)
 
-                #socket.wait()
+        if r.text == '1':
+        #if not checker:
+            save_mission()
+            checker=True
+            total=calculate_dist()
+            print("total:",total)
+
+
 
 
 
 
 def start():
     try:
-        print("inside start")
         thread.start_new_thread(send_data,("Send Data", 1))
-        #save_mission()
+        save_mission()
         #calculate_dist()
     except Exception as e:
         pass
@@ -289,20 +250,11 @@ def start():
 
 
 
-flight_checker=False
+
 #print("total distance:", total)
-
-
-#while 1:
-start()
-while True:
-    pass
-
-
-
-"""
 initiator={}
 initiator["flight"]=0
+initiator_flag=False
 while 1:
     if not initiator_flag:
         initiate_flight=requests.get("https://nicwebpage.herokuapp.com/flight",params=initiator)
@@ -312,7 +264,7 @@ while 1:
             vehicle.mode = VehicleMode("GUIDED")
             arm_and_takeoff()
             initiator_flag=True
-"""
+
     #save_mission()
 
         #print("estimated time: ",(total-dist_travel)/vehicle.groundspeed)
