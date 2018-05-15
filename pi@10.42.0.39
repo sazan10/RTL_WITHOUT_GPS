@@ -17,18 +17,16 @@ import distance as dis
 #Set up option parsing to get connection string
 import argparse
 
-#parser = argparse.ArgumentParser(description='Print out vehicle state information. Connects to SITL on local PC by default.')
-#parser.add_argument('--connect',
-#                   help="vehicle connection target string. If not specified, SITL automatically started and used.")
-#args = parser.parse_args()
+parser = argparse.ArgumentParser(description='Print out vehicle state information. Connects to SITL on local PC by default.')
+parser.add_argument('--connect',
+                   help="vehicle connection target string. If not specified, SITL automatically started and used.")
+args = parser.parse_args()
 
-#connection_string = args.connect
+connection_string = args.connect
 sitl = None
 
-#print("\nConnecting to vehicle on: ,s" , connection_string)
-
-#vehicle = connect(connection_string, wait_ready=True)
-vehicle = connect('127.0.0.1:14551', wait_ready=True)
+print("\nConnecting to vehicle on: ,s" , connection_string)
+vehicle = connect(connection_string, wait_ready=True)
 
 vehicle.wait_ready('autopilot_version')
 
@@ -91,21 +89,15 @@ def send_data(threadName, delay):
 
     while 1:
         #print("data sending ")
-        try:
-            loc = vehicle.location.global_frame
-            data["numSat"] = vehicle.gps_0.satellites_visible
-            data["hdop"] = vehicle.gps_0.eph
-            data["fix"] = vehicle.gps_0.fix_type
-            data["lat"] = format(loc.lat,'.15f')
-            data["long"] = format(loc.lon,'.15f')
-        except Exception as e:
-            pass
+        loc = vehicle.location.global_frame
         vel = vehicle.velocity
         status = str(vehicle.system_status)
         data["conn"] = 'True'
         data["arm"] = vehicle.armed
         data["ekf"] = vehicle.ekf_ok
         data["mode"] = vehicle.mode.name
+        data["lat"] = format(loc.lat,'.15f')
+        data["long"] = format(loc.lon,'.15f')
         data["alt"] = format(loc.alt, '.2f')
         data["altr"] = vehicle.location.global_relative_frame.alt
         data["head"] = format(vehicle.heading, 'd')
@@ -114,6 +106,9 @@ def send_data(threadName, delay):
         data["gs"] = format(vehicle.groundspeed, '.3f')
         data["status"] = status[13:]
         data["volt"] = format(vehicle.battery.voltage, '.2f')
+        data["numSat"] = vehicle.gps_0.satellites_visible
+        data["hdop"] = vehicle.gps_0.eph
+        data["fix"] = vehicle.gps_0.fix_type
         print(datetime.datetime.now())
         if(checker):#only if waypoints are successfully read
             #print("inside checker")
@@ -149,18 +144,8 @@ def send_data(threadName, delay):
         socket.emit('data',data)
         socket.on('mission_download',on_mission_download)
         socket.on('initiate_flight',on_initiate_flight)
-        print(data["head"])
-        
-        if vehicle.gps_0.fix_type !=None and vehicle.gps_0.fix_type!=1 and vehicle.gps_0.fix_type!=0   and not checker:
-            try:
-                waypoint=mi.save_mission(vehicle)
-                print("MISSION DOWNLOADED")
-                total=dis.calculate_dist(waypoint)
-                checker=True
-            except Exception as e:
-                print(e)
-                print("GPS error OR no mission file received!!!")
         socket.wait(seconds=0.2)
+
                 #socket.wait()
 
 
@@ -179,5 +164,14 @@ def start():
 #while 1:
 start()
 while True:
-    
+    if vehicle.gps_0.fix_type!=None and not checker:
+        try:
+            waypoint=mi.save_mission(vehicle)
+            print("MISSION DOWNLOADED")
+            total=dis.calculate_dist(waypoint)
+            checker=True
+        except Exception as e:
+            print("GPS error OR no mission file received!!!")
+
+
     pass

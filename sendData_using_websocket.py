@@ -49,8 +49,8 @@ def on_mission_download(var):
 
 
 try:
-    socket = SocketIO('http://192.168.1.119', 3000, wait_for_connection=False)
-    #socket = SocketIO('https://nicwebpage.herokuapp.com', verify =False)
+    #socket = SocketIO('http://192.168.1.119', 3000, wait_for_connection=False)
+    socket = SocketIO('https://nicwebpage.herokuapp.com', verify =False)
     socket.emit("joinPi")
 except ConnectionError:
     print('The server is down. Try again later.')
