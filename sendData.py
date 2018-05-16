@@ -31,7 +31,8 @@ sitl = None
 try:
     vehicle = connect('127.0.0.1:14551', wait_ready=True)
 except Exception as e:
-    socket.emit("error","Connection Problem")
+    error={'context':'Connection','msg':'Connection problem with pixhawk'}
+    socket.emit("error",error)
 vehicle.wait_ready('autopilot_version')
 
 
@@ -42,7 +43,8 @@ def on_mission_download(var): #this function is called once the server requests 
         socket.emit('waypoints',waypoint)
         print("Mission downloaded by user")
     else:
-        socket.emit("error","GPS error OR no mission file received!!!")
+        error={'context':'GPS/Mission','msg':'GPS error OR no mission file received!!'}
+        socket.emit("error",error)
 
 try:
     socket = SocketIO('http://192.168.1.119', 3000, wait_for_connection=False)#establish socket connection to desired server
@@ -63,7 +65,8 @@ def on_initiate_flight(var):
             flight_checker=True ## True if succesful flight, no further flight commands will be acknowledged
     except Exception as e:
         #print(e)
-        socket.emit("error","Pre-arm checks failed!!!")
+        error={'context':'Prearm','msg':'Pre-arm check failed!!!'}
+        socket.emit("error",error)
 
 # Get all vehicle attributes (state)
 print("\nGet all vehicle attribute values:")
