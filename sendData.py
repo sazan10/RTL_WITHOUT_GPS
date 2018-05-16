@@ -28,67 +28,56 @@ sitl = None
 #print("\nConnecting to vehicle on: ,s" , connection_string)
 
 #vehicle = connect(connection_string, wait_ready=True)
-vehicle = connect('127.0.0.1:14551', wait_ready=True)
-
+try:
+    vehicle = connect('127.0.0.1:14551', wait_ready=True)
+except Exception as e:
+    socket.emit("error","Connection Problem")
 vehicle.wait_ready('autopilot_version')
 
-checker=False
-total=0
 
-waypoint = {}
-
-def on_mission_download(var):
+waypoint={}
+def on_mission_download(var): #this function is called once the server requests to download the mission file, to send mission to server
     print("DOWNLOAD MISSION COMMAND BY USER",var)
-    if bool(waypoint):
+    if bool(waypoint):#checking if the mission file has been downloaded from pixhawk
         socket.emit('waypoints',waypoint)
         print("Mission downloaded by user")
     else:
         socket.emit("error","GPS error OR no mission file received!!!")
 
-
-
-
 try:
-    #socket = SocketIO('http://192.168.1.119', 3000, wait_for_connection=False)
-    socket = SocketIO('https://nicwebpage.herokuapp.com', verify =False)
+    socket = SocketIO('http://192.168.1.119', 3000, wait_for_connection=False)#establish socket connection to desired server
+    #socket = SocketIO('https://nicwebpage.herokuapp.com', verify =False)
     socket.emit("joinPi")
 except ConnectionError:
     print('The server is down. Try again later.')
 
-flight_checker=False
+flight_checker=False #to check that the fly command is given successfully only once
 def on_initiate_flight(var):
-    global flight_checker
+    global flight_checker #reuired global, as this is a socket funciton, got no idea how to pass parameters to socket function
     try:
-        if vehicle.is_armable and not flight_checker:
+        if vehicle.is_armable and not flight_checker: #checking if vehicle is armable and fly command is genuine
             socket.emit("success","flight_success")
             print("FLIGHT INITIATED BY USER")
-            arm.arm_and_takeoff(vehicle,2)
-            vehicle.mode = VehicleMode("AUTO")
-            flight_checker=True
+            arm.arm_and_takeoff(vehicle,2) #arm and takeoff upto 2 meters
+            vehicle.mode = VehicleMode("AUTO") #switch vehicle mode to auto
+            flight_checker=True ## True if succesful flight, no further flight commands will be acknowledged
     except Exception as e:
         #print(e)
         socket.emit("error","Pre-arm checks failed!!!")
-
-
-
 
 # Get all vehicle attributes (state)
 print("\nGet all vehicle attribute values:")
 
 
 
-
-check = True
-divisor=1
-last_vel=0
-data = {}
 def send_data(threadName, delay):
-    global checker
-    global check
-    global total
-    global divisor
-    global last_vel
-
+    global waypoint #needs to be global as it is accessed by on_mission_download, socket function
+    checker=False #flag to start the functions to calculate total distance and eta once the mission is received from pixhawk
+    total=0
+    check = True
+    divisor=1
+    last_vel=0
+    data = {}
     while 1:
         #print("data sending ")
         try:
@@ -97,7 +86,7 @@ def send_data(threadName, delay):
             data["hdop"] = vehicle.gps_0.eph
             data["fix"] = vehicle.gps_0.fix_type
             data["lat"] = format(loc.lat,'.15f')
-            data["long"] = format(loc.lon,'.15f')
+            data["lng"] = format(loc.lon,'.15f')
         except Exception as e:
             pass
         vel = vehicle.velocity
@@ -115,69 +104,55 @@ def send_data(threadName, delay):
         data["status"] = status[13:]
         data["volt"] = format(vehicle.battery.voltage, '.2f')
         print(datetime.datetime.now())
-        if(checker):#only if waypoints are successfully read
-            #print("inside checker")
-            if vehicle.armed and check:
-                time1 = datetime.datetime.now()
+        if  checker:#only if waypoints are successfully read
+
+            if vehicle.armed and check: # check is used to receive time of arming only once, at first arming
+                time1 = datetime.datetime.now() #receive time once armed
                 check=False
             if not check :
                 try:
-                    time2 = datetime.datetime.now()
-                    flight_time=float((time2-time1).total_seconds())
-                    vel=float((last_vel+vehicle.groundspeed)/divisor)
-
-                    #print("flight time",flight_time)
-                    print("total distance",total)
-                    #print(total)
-                    est=float((float(total)-flight_time*vel)/3.5)
-                    #if est<=1 and (total-flight_time*vel)<=2:
-                        #total=0
-                    if est<=0.5:
+                    time2 = datetime.datetime.now()# calculate current time
+                    flight_time=float((time2-time1).total_seconds()) # calculate total flight time
+                    vel=float((last_vel+vehicle.groundspeed)/divisor) #calculate the average velocity upto current time
+                    est=float((float(total)-flight_time*vel)/3.5) #estimate eta, with assummed velocity 3.5 m/s
+                    if est<=0.5: #making sure eta is not less thatn 0.5
                         est=0
                     data["est"]=est
-                    #print(est)
-                    #print("vel:",vel)
-                    #print("estimated time:", est, total, flight_time*vel)
-                    last_vel+=vehicle.groundspeed
-                    divisor+=1
+                    last_vel+=vehicle.groundspeed #summing up velcity to average them
+                    divisor+=1 # the number of values of velocity
                 except Exception as e:
                     pass
-                    #print(type(e))
-                    #print(e.args)
-                    #pass
 
-        socket.emit('data',data)
-        socket.on('mission_download',on_mission_download)
-        socket.on('initiate_flight',on_initiate_flight)
+        socket.emit('data',data) #send data to server
+        socket.on('mission_download',on_mission_download) #keep listening for download command for mission from server
+        socket.on('initiate_flight',on_initiate_flight)#keep listening for fly command from user
         print(data["head"])
-        
-        if vehicle.gps_0.fix_type !=None and vehicle.gps_0.fix_type!=1 and vehicle.gps_0.fix_type!=0   and not checker:
+
+        if vehicle.gps_0.fix_type > 1   and not checker: ## check gps before downloading the mission as home points are not received without gps, and checker to download mission only once
             try:
-                waypoint=mi.save_mission(vehicle)
+                waypoint=mi.save_mission(vehicle) # call the save mission function which downloads the mission from pixhawk and arranges waypoints into a dictionary
                 print("MISSION DOWNLOADED")
-                total=dis.calculate_dist(waypoint)
-                checker=True
+                total=dis.calculate_dist(waypoint) # calculate total distance between home and final waypoint
+                socket.emit('homePosition',waypoint[0]) # send homePosition to server as soon as gps lock
+                checker=True # switch value of checker such that mission is downloaded only once from pixhawk, and condition to calculate eta is met
             except Exception as e:
                 print(e)
                 print("GPS error OR no mission file received!!!")
-        socket.wait(seconds=0.2)
+        socket.wait(seconds=0.2) #sends or waits for socket activities in every seconds specified
                 #socket.wait()
 
 
-def start():
+def start(): #to perform all the operations in a thread
     try:
         print("inside start")
-        thread.start_new_thread(send_data,("Send Data", 1))
+        thread.start_new_thread(send_data,("Send Data", 1)) # function, arguments
         #save_mission()
         #calculate_dist()
     except Exception as e:
         pass
 
 
-#print("total distance:", total)
-
-#while 1:
 start()
 while True:
-    
+
     pass

@@ -22,7 +22,7 @@ def calculate_dist(waypoint):
     total_dist=0
     for i in range(len(waypoint)-1):
         try:
-            dist.append(distanceInmBetweenEarthCoordinates(waypoint[i]['lat'],waypoint[i]['lng'],waypoint[i+1]['lat'],waypoint[i+1]['lng']))
+            dist.append(distanceInmBetweenEarthCoordinates(waypoint[i]['lat'],waypoint[i]['lon'],waypoint[i+1]['lat'],waypoint[i+1]['lon']))
             #print(i,dist[i])
             total_dist += dist[i]
         except Exception as e:
