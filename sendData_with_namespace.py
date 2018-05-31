@@ -39,11 +39,11 @@ def read_username_password():
 
 
 try:
-    #socket = SocketIO('http://192.168.1.119', 3000, wait_for_connection=False)#establish socket connection to desired server
-    #socket = socket1.define(BaseNamespace,'/pulchowk')
-    socket = SocketIO('https://nicwebpage.herokuapp.com', verify =False)
-    #socket.emit("joinPiPulchowk")
-    socket.emit("joinPi")
+    socket1 = SocketIO('http://192.168.1.119', 3000, wait_for_connection=False)#establish socket connection to desired server
+    socket = socket1.define(BaseNamespace,'/pulchowk')
+    #socket = SocketIO('https://nicwebpage.herokuapp.com', verify =False)
+    socket.emit("joinPiPulchowk")
+    #socket.emit("joinPi")
     #socket.emit("usernamePassword",read_username_password())
 except ConnectionError:
     print('The server is down. Try again later.')
@@ -156,7 +156,7 @@ def send_data(threadName, delay):
             except Exception as e:
                 print(e)
                 print("GPS error OR no mission file received!!!")
-        socket.wait(seconds=0.2) #sends or waits for socket activities in every seconds specified
+        socket1.wait(seconds=0.2) #sends or waits for socket activities in every seconds specified
                 #socket.wait()
 
 
